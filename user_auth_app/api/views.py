@@ -1,28 +1,38 @@
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import request, status
 from rest_framework.permissions import AllowAny
-from django.contrib.auth.models import User
-from rest_framework.authtoken.models import Token
-from ..models import UserProfile
-from .serializers import RegisterSerializer
+
+from .serializers import RegisterSerializer, LoginSerializer
 
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
-    # def get(self, request):
-    #     return Response({"message": "Willkommen zum Registrierungsendpunkt. Bitte senden Sie eine POST-Anfrage mit fullname, email, password und repeated_password."})
-
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            profile = user.profile
             return Response({
-                'user_id': user.id,
-                'fullname': profile.fullname,
+                'token': user.auth_token.key,
+                'fullname': user.fullname,
                 'email': user.email,
-                'token': user.auth_token.key
+                'user_id': user.id
             }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            return Response({
+                'token': user.auth_token.key,
+                'fullname': user.fullname,
+                'email': user.email,
+                'user_id': user.id
+            }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

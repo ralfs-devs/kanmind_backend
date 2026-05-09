@@ -1,7 +1,12 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import User
+
 from ..models import UserProfile
+
+User = get_user_model()
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -21,14 +26,35 @@ class RegisterSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop('repeated_password')
-        user = User.objects.create_user(
-            username=validated_data['email'],
+        user = UserProfile.objects.create_user(
             email=validated_data['email'],
+            fullname=validated_data['fullname'],
             password=validated_data['password']
         )
-        UserProfile.objects.create(
-            user=user,
-            fullname=validated_data['fullname']
-        )
+
         Token.objects.create(user=user)
         return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def to_internal_value(self, data):
+        allowed_fields = set(self.fields.keys())
+        provided_fields = set(data.keys())
+        unknown_fields = provided_fields - allowed_fields
+        if unknown_fields:
+            raise serializers.ValidationError(
+                {field: "Dieses Feld ist nicht erlaubt." for field in unknown_fields}
+            )
+        return super().to_internal_value(data)
+
+    def validate(self, data):
+        user = authenticate(email=data['email'], password=data['password'])
+        print(
+            f"Übergenebene Daten: {data['email']} - {data['password']}      Benutzer: {user}  ")
+        if not user:
+            raise serializers.ValidationError("Falsche Anmeldedaten.")
+        data['user'] = user
+        return data
