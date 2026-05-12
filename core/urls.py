@@ -21,7 +21,8 @@ from user_auth_app.api.views import RegisterView, LoginView
 urlpatterns = [
     path('admin/', admin.site.urls),
     # path('api/registration/', include('user_auth_app.api.urls')),
-    path('api/login/', LoginView.as_view(), name='login'),
-    path('api/registration/', RegisterView.as_view(), name='register'),
-    path('api-auth/', include('rest_framework.urls')),
+    path('api/', include('user_auth_app.api.urls')),
+    path('api/', include('kanmind_app.api.urls')),
+    # path('api-auth/', include('rest_framework.urls')),
+
 ]

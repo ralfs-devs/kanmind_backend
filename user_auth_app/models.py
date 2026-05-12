@@ -35,3 +35,6 @@ class UserProfile(AbstractUser):
     REQUIRED_FIELDS = ['fullname']
 
     objects = UserProfileManager()
+
+    class Meta:
+        app_label = 'user_auth_app'

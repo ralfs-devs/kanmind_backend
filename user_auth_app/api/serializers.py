@@ -15,13 +15,23 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     repeated_password = serializers.CharField(write_only=True)
 
+    def to_internal_value(self, data):
+        allowed_fields = set(self.fields.keys())
+        provided_fields = set(data.keys())
+        unknown_fields = provided_fields - allowed_fields
+        if unknown_fields:
+            raise serializers.ValidationError(
+                {field: "This field is not allowed." for field in unknown_fields}
+            )
+        return super().to_internal_value(data)
+
     def validate(self, data):
         if data['password'] != data['repeated_password']:
             raise serializers.ValidationError(
-                "Passwörter stimmen nicht überein.")
+                "Passwords do not match.")
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError(
-                "Ein Benutzer mit dieser E-Mail existiert bereits.")
+                "A user with this email already exists.")
         return data
 
     def create(self, validated_data):
@@ -46,15 +56,13 @@ class LoginSerializer(serializers.Serializer):
         unknown_fields = provided_fields - allowed_fields
         if unknown_fields:
             raise serializers.ValidationError(
-                {field: "Dieses Feld ist nicht erlaubt." for field in unknown_fields}
+                {field: "This field is not allowed." for field in unknown_fields}
             )
         return super().to_internal_value(data)
 
     def validate(self, data):
         user = authenticate(email=data['email'], password=data['password'])
-        print(
-            f"Übergenebene Daten: {data['email']} - {data['password']}      Benutzer: {user}  ")
         if not user:
-            raise serializers.ValidationError("Falsche Anmeldedaten.")
+            raise serializers.ValidationError("Wrong email or password.")
         data['user'] = user
         return data
