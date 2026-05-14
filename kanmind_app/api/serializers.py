@@ -1,10 +1,13 @@
 from user_auth_app.models import UserProfile
-
+from django.contrib.auth import get_user_model
 from ..models import Boards, Tasks
 from rest_framework import serializers
 
 
-class BoardsSerializer(serializers.ModelSerializer):
+User = get_user_model()
+
+
+class BoardSerializer(serializers.ModelSerializer):
     member_count = serializers.SerializerMethodField()
     ticket_count = serializers.SerializerMethodField()
     tasks_to_do_count = serializers.SerializerMethodField()
@@ -51,6 +54,20 @@ class SingleBoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Boards
         fields = ['id', 'title', 'members', 'owner_id']
+
+
+class EmailCheckSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'email', 'fullname']
+
+    def validate_email(self, value):
+        # Prüfen, ob die E-Mail-Adresse bereits existiert
+        if UserProfile.objects.filter(email__iexact=value).exists():
+            return value
+        return (None)
 
 
 class TasksSerializer(serializers.ModelSerializer):
