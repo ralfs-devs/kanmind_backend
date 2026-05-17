@@ -1,16 +1,15 @@
-import email
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from rest_framework import serializers
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import viewsets, status, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from kanmind_app.models import Boards, Tasks
-from user_auth_app.models import UserProfile
+
+from ..models import Boards, Tasks
 from .serializers import BoardSerializer, EmailCheckSerializer, TasksSerializer, SingleBoardSerializer
 from .permissions import IsBoardOwner
 
@@ -58,14 +57,16 @@ class BoardsViewSet(viewsets.ModelViewSet):
 
 
 class EmailCheckView(APIView):
+    queriset = User.objects.all()
     serializers_class = EmailCheckSerializer
     permission_classes = [IsAuthenticated]
+
     if not IsAuthenticated():
         raise permissions.PermissionDenied(
             "Nicht authentifiziert. Der Benutzer muss eingeloggt sein.", status=status.HTTP_401_UNAUTHORIZED)
 
     def get(self, request):
-        email = request.query_params.get('email')
+        email = request.query_params.get('email').strip()
         if not email:
             return Response("E-mail-Adresse fehlt", status=400)
         try:
@@ -81,7 +82,7 @@ class EmailCheckView(APIView):
             })
 
         except User.DoesNotExist:
-            return Response("Email nicht gefunden. Die Email existiert nicht.", status=status.HTTP_404_NOT_FOUND)
+            return Response("Email nicht gefunden. Es gibt keinen aktiven Benutzer mit dieser Email.", status=status.HTTP_404_NOT_FOUND)
 
 
 class TasksViewSet(viewsets.ModelViewSet):

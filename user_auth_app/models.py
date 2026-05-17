@@ -17,7 +17,7 @@ class UserProfileManager(BaseUserManager):
 
 class UserProfile(AbstractUser):
     username = None
-    fullname = models.CharField(max_length=300, blank=False)
+    fullname = models.CharField(max_length=300, blank=False, unique=False)
     email = models.EmailField(unique=True)
 
     groups = models.ManyToManyField(
