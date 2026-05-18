@@ -10,8 +10,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from ..models import Boards, Tasks
-from .serializers import BoardSerializer, EmailCheckSerializer, TasksSerializer, SingleBoardSerializer
-from .permissions import IsBoardOwner
+from .serializers import BoardSerializer, TasksSerializer, SingleBoardSerializer, UserProfileSerializer
+from .permissions import IsBoardMember, IsBoardOwner
 
 User = get_user_model()
 
@@ -58,17 +58,18 @@ class BoardsViewSet(viewsets.ModelViewSet):
 
 class EmailCheckView(APIView):
     queriset = User.objects.all()
-    serializers_class = EmailCheckSerializer
+    serializers_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    if not IsAuthenticated():
-        raise permissions.PermissionDenied(
-            "Nicht authentifiziert. Der Benutzer muss eingeloggt sein.", status=status.HTTP_401_UNAUTHORIZED)
+    # if not IsAuthenticated():
+    #     raise permissions.PermissionDenied(
+    #         "Nicht authentifiziert. Der Benutzer muss eingeloggt sein.", status=status.HTTP_401_UNAUTHORIZED)
 
     def get(self, request):
-        email = request.query_params.get('email').strip()
+        email = request.query_params.get('email')
         if not email:
             return Response("E-mail-Adresse fehlt", status=400)
+        # email = email.strip()  # Entfernt führende und nachfolgende Leerzeichen
         try:
             validate_email(email)
         except ValidationError:
@@ -88,4 +89,4 @@ class EmailCheckView(APIView):
 class TasksViewSet(viewsets.ModelViewSet):
     queryset = Tasks.objects.all()
     serializer_class = TasksSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsBoardMember]

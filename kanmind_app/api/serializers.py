@@ -45,6 +45,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['id', 'email', 'fullname']
 
+    def validate_email(self, value):
+        # email = serializers.EmailField()
+        # Prüfen, ob die E-Mail-Adresse bereits existiert
+        if UserProfile.objects.filter(email__iexact=value).exists():
+            return value
+        return (None)
+
 
 class SingleBoardSerializer(serializers.ModelSerializer):
     members = UserProfileSerializer(many=True, read_only=True)
@@ -56,23 +63,38 @@ class SingleBoardSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'members', 'owner_id']
 
 
-class EmailCheckSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField()
+# class EmailCheckSerializer(UserProfileSerializer):
+#     pass
+    # email = serializers.EmailField()
 
-    class Meta:
-        model = UserProfile
-        fields = ['id', 'email', 'fullname']
+    # class Meta:
+    #     model = UserProfile
+    #     fields = ['id', 'email', 'fullname']
 
-    def validate_email(self, value):
-        # Prüfen, ob die E-Mail-Adresse bereits existiert
-        if UserProfile.objects.filter(email__iexact=value).exists():
-            return value
-        return (None)
+    # def validate_email(self, value):
+    #     # Prüfen, ob die E-Mail-Adresse bereits existiert
+    #     if UserProfile.objects.filter(email__iexact=value).exists():
+    #         return value
+    #     return (None)
 
 
 class TasksSerializer(serializers.ModelSerializer):
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.all(),
+        source='assignee',
+        write_only=True
+    )
+    assignee = UserProfileSerializer(read_only=True)
+
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.all(),
+        source='reviewer',
+        write_only=True
+    )
+
+    reviewer = UserProfileSerializer(read_only=True)
 
     class Meta:
         model = Tasks
         fields = ['id', 'board', 'title', 'description', 'status',
-                  'priority', 'assignee', 'reviewer', 'due_date']
+                  'priority', 'assignee', 'reviewer', 'due_date', 'assignee_id', 'reviewer_id']

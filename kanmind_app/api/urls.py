@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from .views import BoardsViewSet, TasksViewSet, EmailCheckView
 urlpatterns = [
     # Boards URLs
@@ -17,4 +17,6 @@ urlpatterns = [
     path('tasks/<int:pk>/', TasksViewSet.as_view(
         {'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='tasks-detail'),
 
+    # Authentication URLs
+    path('api-auth/', include('rest_framework.urls')),
 ]
