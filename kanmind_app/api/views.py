@@ -1,6 +1,7 @@
 
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -8,6 +9,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from ..models import Boards, Tasks
 from .serializers import BoardSerializer, TasksSerializer, SingleBoardSerializer, UserProfileSerializer
@@ -61,19 +63,15 @@ class EmailCheckView(APIView):
     serializers_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    # if not IsAuthenticated():
-    #     raise permissions.PermissionDenied(
-    #         "Nicht authentifiziert. Der Benutzer muss eingeloggt sein.", status=status.HTTP_401_UNAUTHORIZED)
-
     def get(self, request):
         email = request.query_params.get('email')
         if not email:
-            return Response("E-mail-Adresse fehlt", status=400)
+            return Response("E-Mail is required", status=400)
         # email = email.strip()  # Entfernt führende und nachfolgende Leerzeichen
         try:
             validate_email(email)
         except ValidationError:
-            return Response("Ungültiges E-Mail-Format", status=400)
+            return Response("Invalid email format", status=400)
         try:
             user = User.objects.get(email__iexact=email)
             return Response({
@@ -83,10 +81,27 @@ class EmailCheckView(APIView):
             })
 
         except User.DoesNotExist:
-            return Response("Email nicht gefunden. Es gibt keinen aktiven Benutzer mit dieser Email.", status=status.HTTP_404_NOT_FOUND)
+            return Response("Email not found. There is no active user with this email.", status=status.HTTP_404_NOT_FOUND)
 
 
 class TasksViewSet(viewsets.ModelViewSet):
     queryset = Tasks.objects.all()
     serializer_class = TasksSerializer
     permission_classes = [IsBoardMember]
+
+    def get_object(self):
+        pk = self.kwargs['pk']
+        try:
+            pk = int(pk)
+        except ValueError:
+            raise DRFValidationError({'id': 'Must be a number.'})
+        return super().get_object()
+
+    def perform_update(self, serializer):
+
+        serializer.save()
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [(IsBoardOwner | IsBoardMember)()]
+        return super().get_permissions()

@@ -28,7 +28,7 @@ class Tasks(models.Model):
         (DONE, 'done'),
     ]
 
-    # Priorität-Choices
+    # Priority-Choices
     LOW = 'low'
     MEDIUM = 'medium'
     HIGH = 'high'

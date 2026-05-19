@@ -29,14 +29,12 @@ class BoardSerializer(serializers.ModelSerializer):
         return obj.members.count()
 
     def get_ticket_count(self, obj):
-        return obj.tasks.count()  # Zählt alle Tasks für dieses Board
+        return obj.tasks.count()
 
     def get_tasks_to_do_count(self, obj):
-        # Zählt Tasks mit Status "To Do"
         return obj.tasks.filter(status=Tasks.TO_DO).count()
 
     def get_tasks_high_prio_count(self, obj):
-        # Zählt Tasks mit hoher Priorität
         return obj.tasks.filter(priority=Tasks.HIGH).count()
 
 
@@ -46,8 +44,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'fullname']
 
     def validate_email(self, value):
-        # email = serializers.EmailField()
-        # Prüfen, ob die E-Mail-Adresse bereits existiert
+        email = serializers.EmailField()
         if UserProfile.objects.filter(email__iexact=value).exists():
             return value
         return (None)
@@ -63,22 +60,14 @@ class SingleBoardSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'members', 'owner_id']
 
 
-# class EmailCheckSerializer(UserProfileSerializer):
-#     pass
-    # email = serializers.EmailField()
-
-    # class Meta:
-    #     model = UserProfile
-    #     fields = ['id', 'email', 'fullname']
-
-    # def validate_email(self, value):
-    #     # Prüfen, ob die E-Mail-Adresse bereits existiert
-    #     if UserProfile.objects.filter(email__iexact=value).exists():
-    #         return value
-    #     return (None)
-
-
 class TasksSerializer(serializers.ModelSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # for updates, make 'board' read-only:
+        if self.context.get('request').method in ['PUT', 'PATCH']:
+            self.fields['board'].read_only = True
+
     assignee_id = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.all(),
         source='assignee',
@@ -98,3 +87,20 @@ class TasksSerializer(serializers.ModelSerializer):
         model = Tasks
         fields = ['id', 'board', 'title', 'description', 'status',
                   'priority', 'assignee', 'reviewer', 'due_date', 'assignee_id', 'reviewer_id']
+        extra_kwargs = {
+            'board': {'required': True}
+        }
+
+    def to_internal_value(self, data):
+        # Make sure board_id is included in the internal value for updates
+        if self.context.get('request').method in ['PUT', 'PATCH']:
+            data.pop('board', None)
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # delete board only if it's an update, not on create
+        # if self.instance is not None:  # self.instance is None on create, see comment above in get_extra_kwargs
+        if self.context.get('request').method in ['PUT', 'PATCH']:
+            data.pop('board', None)
+        return data
