@@ -1,15 +1,17 @@
 
-# from django.core.exceptions import ValidationError
+from django.http import Http404
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import NotAuthenticated, ValidationError as DRFValidationError
+
+# from user_auth_app.models import UserProfile
 
 from ..models import Boards, Tasks
 from .serializers import BoardSerializer, TasksSerializer, SingleBoardSerializer, UserProfileSerializer
@@ -23,65 +25,113 @@ class BoardsViewSet(viewsets.ModelViewSet):
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        if not self.request.user.is_authenticated:
+            raise NotAuthenticated('Authentifizierung erforderlich.')
+
+        lookup_field = self.lookup_field
+        lookup_value = self.kwargs[self.lookup_field]
+
+        try:
+            obj = Boards.objects.get(**{lookup_field: lookup_value})
+        except Boards.DoesNotExist:
+            raise Http404("No board found with the given ID.")
+
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     def get_serializer_class(self):
-        # Verwendet SingleBoardSerializer für 'retrieve' (GET /boards/123/)
         if self.action == 'retrieve':
-            return SingleBoardSerializer  # Gibt SingleBoardSerializer zurück
+            return SingleBoardSerializer
         return super().get_serializer_class()
 
     def perform_create(self, serializer):
-        # Speichert das Board, Owner ist der aktuelle Benutzer
         board = serializer.save(owner=self.request.user)
-        # Fügt die übergebenen Mitglieder aus dem Request-Body hinzu
         member_ids = self.request.data.get('members', [])
         board.members.set(member_ids)
 
-    def perform_destroy(self, instance):
-        if not IsAuthenticated():
-            raise permissions.PermissionDenied(
-                "Authentication required to delete a board.", status=status.HTTP_401_UNAUTHORIZED)
-        elif not IsBoardOwner():
-            raise permissions.forbidden(
-                "Only the board owner can delete this board.", status=status.HTTP_403_FORBIDDEN)
-        elif instance is None:
-            return Response(
-                "Board not found.", status=status.HTTP_404_NOT_FOUND)
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
-        instance.delete()
-        return self.response(status=status.HTTP_204_NO_CONTENT)
+        member_ids = request.data.get('members', None)
+        if member_ids is not None:
+            instance.members.set(member_ids)
+        if partial:
+            response_data = {
+                'id': instance.id,
+                'title': instance.title,
+                'owner_data': {
+                    'id': instance.owner.id,
+                    'email': instance.owner.email,
+                    'fullname': instance.owner.fullname,
+                },
+                'members_data': [
+                    {
+                        'id': member.id,
+                        'email': member.email,
+                        'fullname': member.fullname
+                    } for member in instance.members.all()
+                ]
+            }
+            return Response(response_data)
+
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'retrieve']:
+            return [(IsBoardOwner | IsBoardMember)()]
+        if self.action == 'destroy':
+            return [(IsBoardOwner)()]
+        return super().get_permissions()
 
     def get_queryset(self):
         user = self.request.user
-        # Gibt Boards zurück, bei denen der Benutzer Owner oder Member ist
         return Boards.objects.filter(
             Q(owner=user) | Q(members=user)
         ).distinct()
 
 
 class EmailCheckView(APIView):
-    queriset = User.objects.all()
-    serializers_class = UserProfileSerializer
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         email = request.query_params.get('email')
         if not email:
             return Response("E-Mail is required", status=400)
-        # email = email.strip()  # Entfernt führende und nachfolgende Leerzeichen
+
         try:
             validate_email(email)
         except ValidationError:
             return Response("Invalid email format", status=400)
+
         try:
             user = User.objects.get(email__iexact=email)
             return Response({
                 'id': user.id,
                 'email': user.email,
-                'fullname': user.fullname
+                'fullname': user.fullname,
             })
-
         except User.DoesNotExist:
-            return Response("Email not found. There is no active user with this email.", status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                "Email not found. There is no active user with this email.",
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class TasksViewSet(viewsets.ModelViewSet):
@@ -90,16 +140,31 @@ class TasksViewSet(viewsets.ModelViewSet):
     permission_classes = [IsBoardMember]
 
     def get_object(self):
-        pk = self.kwargs['pk']
+        pk = self.kwargs.get('pk')
         try:
-            pk = int(pk)
-        except ValueError:
+            int(pk)
+        except (ValueError, TypeError):
             raise DRFValidationError({'id': 'Must be a number.'})
         return super().get_object()
 
     def perform_update(self, serializer):
-
         serializer.save()
+
+    def assigned_to_me(self, request):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
+        user = request.user
+        tasks = Tasks.objects.filter(assignee=user)
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
+
+    def reviewed_by_me(self, request):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
+        user = request.user
+        tasks = Tasks.objects.filter(reviewer=user)
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
 
     def get_permissions(self):
         if self.action == 'destroy':

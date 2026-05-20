@@ -13,7 +13,7 @@ class BoardSerializer(serializers.ModelSerializer):
     tasks_to_do_count = serializers.SerializerMethodField()
     tasks_high_prio_count = serializers.SerializerMethodField()
     members = serializers.PrimaryKeyRelatedField(
-        queryset=UserProfile.objects.all(), many=True, required=False
+        queryset=UserProfile.objects.all(), many=True, required=True, write_only=True
     )
     owner_id = serializers.PrimaryKeyRelatedField(
         source='owner', read_only=True)
@@ -57,7 +57,7 @@ class SingleBoardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Boards
-        fields = ['id', 'title', 'members', 'owner_id']
+        fields = ['id', 'title', 'owner_id', 'members']
 
 
 class TasksSerializer(serializers.ModelSerializer):
