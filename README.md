@@ -43,6 +43,7 @@ pip install -r requirements.txt
 Check whether all the necessary dependencies are installed:
 ~~~bash
 pip freeze
+~~~
 ```
 ####Now open the .env.template file and follow the instructions in it
 then save it as .env
