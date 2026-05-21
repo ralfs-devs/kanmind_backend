@@ -189,7 +189,7 @@ class CommentsViewSet(viewsets.ViewSet):
         board = task.board
         if not board.members.filter(pk=request.user.pk).exists():
             return Response(
-                {"detail": "Sie sind kein Mitglied dieses Boards."},
+                {"detail": "You are not member of this board."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -200,7 +200,9 @@ class CommentsViewSet(viewsets.ViewSet):
                 task=task
             )
             return Response({
-                "id": comment.id, "created_at": comment.created_at, "author": comment.author.fullname,
+                "id": comment.id,
+                "created_at": comment.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "author": comment.author.fullname,
                 "content": comment.content
             }, status=status.HTTP_201_CREATED)
         except IntegrityError:
@@ -215,23 +217,23 @@ class CommentsViewSet(viewsets.ViewSet):
         board = task.board
         if not board.members.filter(pk=request.user.pk).exists():
             return Response(
-                {"detail": "Sie sind kein Mitglied dieses Boards."},
+                {"detail": "You are not member of this board"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         data = [
             {
                 "id": c.id,
+                "created_at": c.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "author": c.author.fullname,
                 "content": c.content,
-                "created_at": c.created_at,
-                "author": c.author.fullname
             }
             for c in comments
         ]
         return Response(data)
 
     def destroy(self, request, comment_id=None, task_id=None):
-        # Kommentar holen
+
         comment = get_object_or_404(Comments, pk=comment_id)
 
         # Task und Board ermitteln

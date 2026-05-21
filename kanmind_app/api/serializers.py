@@ -109,9 +109,9 @@ class TasksSerializer(serializers.ModelSerializer):
         return [
             {
                 "id": c.id,
-                "content": c.content,
-                "created_at": c.created_at,
-                "author": c.author.user.get_full_name() or c.author.user.username
+                "created_at": c.created_at.c.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "author":  c.author.user.username,
+                "content": c.content
             }
             for c in obj.comments_task.all()
         ]
