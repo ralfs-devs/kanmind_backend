@@ -7,7 +7,7 @@
 This project is in the early testing phase.  
 **Disclaimer:** We assume no liability for damages of any kind.
 
-## Installation in Your Local VSCode Environment
+## Installation in Your Local VSCode Environment:
 
 1. Clone the repository:
 ~~~bash
@@ -44,6 +44,9 @@ Check whether all the necessary dependencies are installed:
 ~~~bash
 pip freeze
 ~~~
+Now open the .env.template file and follow the instructions in it
+then save it as .env
+``
 Apply database migrations:
 ~~~bash
 python manage.py migrate
@@ -52,8 +55,9 @@ Start the development server:
 ~~~bash
 python manage.py runserver
 ~~~
-### Project Tree
-### Testing Notes
+
+## Testing Notes:
 
 The global rate limit is currently disabled ("no limits").
 To adjust rate limiting, modify the DEFAULT_THROTTLE_RATES value in settings.py with your preferred settings.
+**Caution**: Don't forget to change your SECRET_KEY setting in your .env before you use the project in a production setting
