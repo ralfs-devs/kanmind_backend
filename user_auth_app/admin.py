@@ -9,7 +9,7 @@ class UserProfileAdmin(BaseUserAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active')
     search_fields = ('email', 'fullname')
     ordering = ('email',)
-    # Ermöglicht komfortable Auswahl
+
     filter_horizontal = ('groups', 'user_permissions')
 
     fieldsets = (

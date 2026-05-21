@@ -1,4 +1,3 @@
-
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.core.validators import validate_email
@@ -6,13 +5,12 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotAuthenticated, ValidationError as DRFValidationError
-
-# from user_auth_app.models import UserProfile
 
 from ..models import Boards, Tasks, Comments
 from .serializers import BoardSerializer, TasksSerializer, SingleBoardSerializer, UserProfileSerializer
@@ -217,7 +215,7 @@ class CommentsViewSet(viewsets.ViewSet):
         board = task.board
         if not board.members.filter(pk=request.user.pk).exists():
             return Response(
-                {"detail": "You are not member of this board"},
+                {"detail": "You are not a member of this board"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -236,7 +234,6 @@ class CommentsViewSet(viewsets.ViewSet):
 
         comment = get_object_or_404(Comments, pk=comment_id)
 
-        # Task und Board ermitteln
         task = get_object_or_404(Tasks, pk=task_id)
         board = task.board
 

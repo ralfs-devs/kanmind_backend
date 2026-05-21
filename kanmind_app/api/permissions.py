@@ -5,14 +5,14 @@ from kanmind_app.models import Boards
 
 class IsBoardOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        # Wenn obj direkt ein Boards-Objekt ist
+
         if isinstance(obj, Boards):
             board = obj
-        # Wenn obj ein anderes Modell ist (z. B. Task), das ein board-Feld hat
+
         elif hasattr(obj, 'board'):
             board = obj.board
         else:
-            return False  # Unbekanntes Objekt, keine Berechtigung
+            return False
 
         return board.owner == request.user
 

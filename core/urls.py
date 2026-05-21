@@ -16,13 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from user_auth_app.api.views import RegisterView, LoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # path('api/registration/', include('user_auth_app.api.urls')),
     path('api/', include('user_auth_app.api.urls')),
     path('api/', include('kanmind_app.api.urls')),
-    # path('api-auth/', include('rest_framework.urls')),
 
 ]
