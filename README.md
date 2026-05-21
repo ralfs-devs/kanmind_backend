@@ -40,6 +40,7 @@ Install required packages:
 ~~~bash
 pip install -r requirements.txt
 ~~~
+Check whether all the necessary dependencies are installed:
 ~~~bash
 pip freeze
 ~~~
@@ -51,7 +52,7 @@ Start the development server:
 ~~~bash
 python manage.py runserver
 ~~~
-
+### Project Tree
 ### Testing Notes
 
 The global rate limit is currently disabled ("no limits").
