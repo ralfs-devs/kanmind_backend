@@ -57,7 +57,7 @@ class Tasks(models.Model):
 
 
 class Comments(models.Model):
-    text = models.TextField()
+    content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(
         UserProfile, on_delete=models.CASCADE, related_name="comments_user")

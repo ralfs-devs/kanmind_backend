@@ -1,8 +1,9 @@
 
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-
+from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import viewsets, status
@@ -13,7 +14,7 @@ from rest_framework.exceptions import NotAuthenticated, ValidationError as DRFVa
 
 # from user_auth_app.models import UserProfile
 
-from ..models import Boards, Tasks
+from ..models import Boards, Tasks, Comments
 from .serializers import BoardSerializer, TasksSerializer, SingleBoardSerializer, UserProfileSerializer
 from .permissions import IsBoardMember, IsBoardOwner
 
@@ -170,3 +171,79 @@ class TasksViewSet(viewsets.ModelViewSet):
         if self.action == 'destroy':
             return [(IsBoardOwner | IsBoardMember)()]
         return super().get_permissions()
+
+
+class CommentsViewSet(viewsets.ViewSet):
+    queryset = Tasks.objects.all()
+    serializer_class = TasksSerializer
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, task_id=None):
+        content = request.data.get('content')
+        if not content or not content.strip():
+            return Response(
+                {"content": ["This field is required"]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        task = get_object_or_404(Tasks, pk=task_id)
+        board = task.board
+        if not board.members.filter(pk=request.user.pk).exists():
+            return Response(
+                {"detail": "Sie sind kein Mitglied dieses Boards."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            comment = Comments.objects.create(
+                content=content.strip(),
+                author=request.user,
+                task=task
+            )
+            return Response({
+                "id": comment.id, "created_at": comment.created_at, "author": comment.author.fullname,
+                "content": comment.content
+            }, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                {"content": ["Invalid Data."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def list(self, request, task_id=None):
+        task = get_object_or_404(Tasks, pk=task_id)
+        comments = task.comments_task.all()
+        board = task.board
+        if not board.members.filter(pk=request.user.pk).exists():
+            return Response(
+                {"detail": "Sie sind kein Mitglied dieses Boards."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        data = [
+            {
+                "id": c.id,
+                "content": c.content,
+                "created_at": c.created_at,
+                "author": c.author.fullname
+            }
+            for c in comments
+        ]
+        return Response(data)
+
+    def destroy(self, request, comment_id=None, task_id=None):
+        # Kommentar holen
+        comment = get_object_or_404(Comments, pk=comment_id)
+
+        # Task und Board ermitteln
+        task = get_object_or_404(Tasks, pk=task_id)
+        board = task.board
+
+        if comment.author != request.user:
+            return Response(
+                {"detail": "Only the Author is entitled to delete a Comment!"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        comment.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

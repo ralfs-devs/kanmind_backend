@@ -104,3 +104,14 @@ class TasksSerializer(serializers.ModelSerializer):
         if self.context.get('request').method in ['PUT', 'PATCH']:
             data.pop('board', None)
         return data
+
+    def get_comments(self, obj):
+        return [
+            {
+                "id": c.id,
+                "content": c.content,
+                "created_at": c.created_at,
+                "author": c.author.user.get_full_name() or c.author.user.username
+            }
+            for c in obj.comments_task.all()
+        ]

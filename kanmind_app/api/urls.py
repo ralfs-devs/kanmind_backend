@@ -1,5 +1,5 @@
 from django.urls import include, path
-from .views import BoardsViewSet, TasksViewSet, EmailCheckView
+from .views import BoardsViewSet, TasksViewSet, EmailCheckView, CommentsViewSet
 urlpatterns = [
     # Boards URLs
     path('boards/',
@@ -20,7 +20,10 @@ urlpatterns = [
          TasksViewSet.as_view({'get': 'reviewed_by_me'}), name='tasks-reviewed-by-me'),
     path('tasks/<str:pk>/', TasksViewSet.as_view(
         {'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='tasks-detail'),
+    path('tasks/<int:task_id>/comments/',
+         CommentsViewSet.as_view({'get': 'list', 'post': 'create'}), name='task-comments-list'),
+    path('tasks/<int:task_id>/comments/<int:comment_id>/',
+         CommentsViewSet.as_view({'delete': 'destroy'}), name='task-comment-delete'),
 
-    # Authentication URLs
-    path('api-auth/', include('rest_framework.urls')),
+
 ]
