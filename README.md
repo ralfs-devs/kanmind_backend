@@ -2,8 +2,8 @@
 
 # kanmind_backend
 
-#### A backend Application to provide an API for a kanban board.
-
+### A backend Application to provide an API for a kanban board.
+#### Built with Python and Django Rest Framwork
 This project is in the early testing phase.  
 **Disclaimer:** We assume no liability for damages of any kind.
 
