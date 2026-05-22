@@ -44,13 +44,13 @@ Check whether all the necessary dependencies are installed:
 ~~~bash
 pip freeze
 ~~~
-```
-####Now open the .env.template file and follow the instructions in it
-then save it as .env
-```
+
+#### Now open the .env.template file and follow the instructions in it
+#### then save it as .env
+
 Apply database migrations:
 ~~~bash
-python manage.py migrate
+python manage.py migrate 
 ~~~
 Start the development server:
 ~~~bash
@@ -61,4 +61,5 @@ python manage.py runserver
 
 The global rate limit is currently disabled ("no limits").
 To adjust rate limiting, modify the DEFAULT_THROTTLE_RATES value in settings.py with your preferred settings.
+
 **Caution**: Don't forget to change your SECRET_KEY setting in your .env before you use the project in a production setting

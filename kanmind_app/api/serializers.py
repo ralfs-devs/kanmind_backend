@@ -52,12 +52,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class SingleBoardSerializer(serializers.ModelSerializer):
     members = UserProfileSerializer(many=True, read_only=True)
+    tasks = serializers.SerializerMethodField()
     owner_id = serializers.PrimaryKeyRelatedField(
         read_only=True, source='owner')
 
+    def get_tasks(self, obj):
+        tasks = obj.tasks.prefetch_related('comments_task').all()
+        context = {**self.context, 'from_board': True}
+        serializer = TasksSerializer(tasks, many=True, context=context)
+
+    # down't show the board id in serialized data:
+        data = serializer.data
+        for task_data in data:
+            task_data.pop('board', None)
+        return data
+
     class Meta:
         model = Boards
-        fields = ['id', 'title', 'owner_id', 'members']
+        fields = ['id', 'title', 'owner_id', 'members', 'tasks']
 
 
 class TasksSerializer(serializers.ModelSerializer):
@@ -67,7 +79,7 @@ class TasksSerializer(serializers.ModelSerializer):
         # for updates, make 'board' read-only:
         if self.context.get('request').method in ['PUT', 'PATCH']:
             self.fields['board'].read_only = True
-
+    comments_count = serializers.SerializerMethodField()
     assignee_id = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.all(),
         source='assignee',
@@ -86,11 +98,26 @@ class TasksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tasks
         fields = ['id', 'board', 'title', 'description', 'status',
-                  'priority', 'assignee', 'reviewer', 'due_date', 'assignee_id', 'reviewer_id']
+                  'priority', 'assignee', 'reviewer', 'due_date', 'assignee_id', 'reviewer_id', 'comments_count']
         extra_kwargs = {
             'board': {'required': True}
         }
 
+    # Only if a new Dataset shall be saved:
+    def get_extra_kwargs(self):
+        kwargs = super().get_extra_kwargs()
+
+        if self.instance is None:  # self.instance is None at POST
+            for field_name in ['description', 'status', 'priority', 'board']:
+                kwargs.setdefault(field_name, {})
+                kwargs[field_name]['required'] = True
+        return kwargs
+
+    def get_comments_count(self, obj):
+        # counts comments effectivly via DB
+        return obj.comments_task.count()
+
+    # Tasks may not migrate to another board:
     def to_internal_value(self, data):
         # Make sure board_id is included in the internal value for updates
         if self.context.get('request').method in ['PUT', 'PATCH']:
@@ -105,6 +132,7 @@ class TasksSerializer(serializers.ModelSerializer):
             data.pop('board', None)
         return data
 
+    # for getting comments, which are assigned to a task
     def get_comments(self, obj):
         return [
             {

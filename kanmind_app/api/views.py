@@ -26,7 +26,7 @@ class BoardsViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         if not self.request.user.is_authenticated:
-            raise NotAuthenticated('Authentifizierung erforderlich.')
+            raise NotAuthenticated('You are not authenticated')
 
         lookup_field = self.lookup_field
         lookup_value = self.kwargs[self.lookup_field]
@@ -149,7 +149,10 @@ class TasksViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save()
 
+        return super().perform_create(serializer)
+
     def assigned_to_me(self, request):
+        # returns all tasks for the authenticated user
         if not request.user.is_authenticated:
             return Response({'detail': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
         user = request.user
@@ -158,12 +161,18 @@ class TasksViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def reviewed_by_me(self, request):
+        # returns all tasks which the authenticated user shall review
         if not request.user.is_authenticated:
             return Response({'detail': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
         user = request.user
         tasks = Tasks.objects.filter(reviewer=user)
         serializer = self.get_serializer(tasks, many=True)
         return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        board_id = request.data.get('board')
+        get_object_or_404(Boards, pk=board_id)
+        return super().create(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.action == 'destroy':

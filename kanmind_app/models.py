@@ -14,6 +14,9 @@ class Boards(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        verbose_name_plural = 'Boards'
+
 
 class Tasks(models.Model):
     # Status-Choices
@@ -55,6 +58,9 @@ class Tasks(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        verbose_name_plural = 'Tasks'
+
 
 class Comments(models.Model):
     content = models.TextField()
@@ -63,3 +69,6 @@ class Comments(models.Model):
         UserProfile, on_delete=models.CASCADE, related_name="comments_user")
     task = models.ForeignKey(
         Tasks, on_delete=models.CASCADE, related_name="comments_task")
+
+    class Meta:
+        verbose_name_plural = 'Comments'
