@@ -1,5 +1,15 @@
+"""URL routing configuration for the core application API.
+
+This module maps endpoints for the management of Kanban boards, tasks, 
+comments, and utility features like email checking to their respective 
+viewsets and class-based views.
+"""
+
 from django.urls import path
 from .views import BoardsViewSet, TasksViewSet, EmailCheckView, CommentsViewSet
+
+# Global URL patterns list for the core application.
+# Configures RESTful resource paths and binds HTTP methods to ViewSet actions.
 urlpatterns = [
     # Boards URLs
     path('boards/',
@@ -24,6 +34,4 @@ urlpatterns = [
          CommentsViewSet.as_view({'get': 'list', 'post': 'create'}), name='task-comments-list'),
     path('tasks/<int:task_id>/comments/<int:comment_id>/',
          CommentsViewSet.as_view({'delete': 'destroy'}), name='task-comment-delete'),
-
-
 ]
