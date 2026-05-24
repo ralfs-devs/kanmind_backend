@@ -55,7 +55,7 @@ copy the .env.template to a .env file:
 cp .env.template .env
 ~~~
 
-(Opem this .env file in an editor to change to your personal SECRET_KEY)
+(Open this .env file in an editor to change the SECRET_KEY to your personal setting)
 
 Apply database migrations:
 ~~~bash
