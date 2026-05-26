@@ -28,7 +28,11 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
 
     raise ValueError(
-        "SECRET_KEY environment variable is not set:\n Run 'cp .env.template .env' and set the SECRET_KEY variable in the .env file.\n Do not commit the .env file to version control.")
+        "\nSECRET_KEY environment variable is not set:\n"
+        "Run 'cp .env.template .env' \n"
+        "and set the SECRET_KEY variable in the .env file.\n\n"
+        "Caution: Do not commit the .env file to version control."
+    )
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
